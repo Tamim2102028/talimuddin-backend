@@ -1,0 +1,13 @@
+export const ROOM_ROLES = {
+  TEACHER: "TEACHER",
+  CR: "CR",
+  STUDENT: "STUDENT",
+};
+
+export const ROOM_TYPES = {
+  UNIVERSITY: "UNIVERSITY",
+  COLLEGE: "COLLEGE",
+  COACHING: "COACHING",
+  SCHOOL: "SCHOOL",
+  GENERAL: "GENERAL",
+};
