@@ -35,11 +35,9 @@ import roomRouter from "./routes/room.routes.js";
 import profileRouter from "./routes/profile.routes.js";
 import postRouter from "./routes/common/post.routes.js";
 import commentRouter from "./routes/common/comment.routes.js";
-import searchRouter from "./routes/search.routes.js";
 
 app.use("/api/v1/posts", postRouter);
 app.use("/api/v1/comments", commentRouter);
-app.use("/api/v1/search", searchRouter);
 
 app.use("/api/v1/profile", profileRouter);
 app.use("/api/v1/rooms", roomRouter);
