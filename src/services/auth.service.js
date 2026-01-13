@@ -81,14 +81,12 @@ export const registerUserService = async (userData) => {
 // ==========================================
 // 🚀 2. LOGIN USER SERVICE
 // ==========================================
-export const loginUserService = async ({ phoneNumber, userName, password }) => {
-  if (!phoneNumber && !userName) {
-    throw new ApiError(400, "Username or phone number is required");
+export const loginUserService = async ({ phoneNumber, password }) => {
+  if (!phoneNumber) {
+    throw new ApiError(400, "Phone number is required");
   }
 
-  const user = await User.findOne({
-    $or: [{ phoneNumber }, { userName }],
-  });
+  const user = await User.findOne({ phoneNumber });
 
   if (!user) {
     throw new ApiError(404, "User does not exist");
