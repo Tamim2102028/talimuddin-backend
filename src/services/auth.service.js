@@ -306,18 +306,3 @@ export const getUserProfileHeaderService = async (
     },
   };
 };
-
-// ==========================================
-// 🚀 12. GET USER DETAILS SERVICE
-// ==========================================
-export const getUserDetailsService = async (username) => {
-  const user = await User.findOne({ userName: username }).select(
-    "-password -refreshToken"
-  );
-
-  if (!user) {
-    throw new ApiError(404, "User not found");
-  }
-
-  return { user };
-};
