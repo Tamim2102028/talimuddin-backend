@@ -700,41 +700,10 @@ const roomPostsAndMembers = {
     const skip = (page - 1) * limit;
 
     const memberships = await RoomMembership.find({ room: roomId })
-      .populate("user", "fullName userName avatar institution")
+      .populate("user", "fullName userName avatar")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
-
-    const { Friendship } = await import("../models/friendship.model.js");
-    const { FRIENDSHIP_STATUS } = await import("../constants/index.js");
-
-    const memberUserIds = memberships.map((m) => m.user._id);
-
-    const friendships = await Friendship.find({
-      $or: [
-        { requester: userId, recipient: { $in: memberUserIds } },
-        { recipient: userId, requester: { $in: memberUserIds } },
-      ],
-    });
-
-    const friendshipMap = new Map();
-    friendships.forEach((f) => {
-      const otherId =
-        f.requester.toString() === userId.toString()
-          ? f.recipient.toString()
-          : f.requester.toString();
-      const isRequester = f.requester.toString() === userId.toString();
-      friendshipMap.set(otherId, {
-        status: f.status,
-        isRequester,
-        isFriend: f.status === FRIENDSHIP_STATUS.ACCEPTED,
-        hasPendingRequest:
-          f.status === FRIENDSHIP_STATUS.PENDING && !isRequester,
-        isSentRequest: f.status === FRIENDSHIP_STATUS.PENDING && isRequester,
-        isBlockedByMe: f.status === FRIENDSHIP_STATUS.BLOCKED && isRequester,
-        isBlockedByThem: f.status === FRIENDSHIP_STATUS.BLOCKED && !isRequester,
-      });
-    });
 
     const isCreator = room.creator.toString() === userId.toString();
     const isAdmin = currentUserMembership.isAdmin;
@@ -743,8 +712,6 @@ const roomPostsAndMembers = {
       const user = membership.user;
       const userIdStr = user._id.toString();
       const isSelf = userIdStr === userId.toString();
-
-      const friendship = friendshipMap.get(userIdStr) || {};
 
       // Determine role
       let role = "MEMBER";
@@ -762,17 +729,11 @@ const roomPostsAndMembers = {
           fullName: user.fullName,
           userName: user.userName,
           avatar: user.avatar,
-          institution: user.institution,
         },
         meta: {
           memberId: membership._id,
           role,
           isSelf,
-          isFriend: friendship.isFriend || false,
-          hasPendingRequest: friendship.hasPendingRequest || false,
-          isSentRequest: friendship.isSentRequest || false,
-          isBlockedByMe: friendship.isBlockedByMe || false,
-          isBlockedByThem: friendship.isBlockedByThem || false,
           isCR: membership.isCR,
           isAdmin: membership.isAdmin,
           isCreator: room.creator.toString() === userIdStr,

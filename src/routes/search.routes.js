@@ -3,9 +3,6 @@ import {
   globalSearch,
   searchUsers,
   searchPosts,
-  searchGroups,
-  searchInstitutions,
-  searchDepartments,
   searchComments,
   getSearchSuggestions,
 } from "../controllers/search.controllers.js";
@@ -44,18 +41,6 @@ router.route("/users").get(searchUsers);
 // Search posts
 // GET /api/v1/search/posts?q=programming&page=1&limit=15
 router.route("/posts").get(searchPosts);
-
-// Search groups
-// GET /api/v1/search/groups?q=computer&page=1&limit=20
-router.route("/groups").get(searchGroups);
-
-// Search institutions
-// GET /api/v1/search/institutions?q=university&page=1&limit=15
-router.route("/institutions").get(searchInstitutions);
-
-// Search departments
-// GET /api/v1/search/departments?q=cse&page=1&limit=20
-router.route("/departments").get(searchDepartments);
 
 // Search comments
 // GET /api/v1/search/comments?q=helpful&page=1&limit=10

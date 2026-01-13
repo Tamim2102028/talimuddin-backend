@@ -6,18 +6,13 @@ export const ACCOUNT_STATUS = {
 };
 
 export const USER_TYPES = {
-  OWNER: "OWNER_39c1d4_ROOT_ACCESS_KEY_Z1Y",
-  ADMIN: "ADMIN_5f8a2b_SECURE_HASH_V9X",
-  STUDENT: "STUDENT",
-  TEACHER: "TEACHER",
-};
+  OWNER: "owner", // Platform owner (1 person, created via seed)
+  ADMIN: "admin", // Islamic scholars (can post content)
+  TEACHER: "teacher", // Branch teachers (3 per branch)
+  NORMAL: "normal", // Default for all new users
 
-export const TEACHER_RANKS = {
-  PROFESSOR: "Professor",
-  ASSOCIATE_PROFESSOR: "Associate Professor",
-  ASSISTANT_PROFESSOR: "Assistant Professor",
-  LECTURER: "Lecturer",
-  INSTRUCTOR: "Instructor",
+  // Deprecated - keeping for backward compatibility
+  STUDENT: "STUDENT", // Old academic context - deprecated
 };
 
 export const GENDERS = {

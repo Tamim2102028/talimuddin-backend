@@ -3,10 +3,6 @@ import { Router } from "express";
 // Middlewares
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { uploadImage } from "../middlewares/multer.middleware.js";
-import { validate } from "../middlewares/validate.middleware.js";
-
-// Validators
-import { userOnboardingSchema } from "../validators/auth.validator.js";
 
 // Controllers
 import {
@@ -14,7 +10,6 @@ import {
   getUserProfileHeader,
   getUserDetails,
   updateAccountDetails,
-  updateAcademicProfile,
   updateUserAvatar,
   updateUserCoverImage,
 } from "../controllers/profile.controllers.js";
@@ -33,12 +28,7 @@ router.get("/details/:username", getUserDetails);
 // update general details
 router.patch("/update-general", updateAccountDetails);
 
-// update academic profile
-router.patch(
-  "/update-academic",
-  validate(userOnboardingSchema),
-  updateAcademicProfile
-);
+
 
 // update avatar
 router.patch("/avatar", uploadImage.single("avatar"), updateUserAvatar);

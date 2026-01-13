@@ -2,7 +2,6 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { getUserProfilePostsService } from "../services/profile.service.js";
 import {
-  updateAcademicProfileService,
   updateUserAvatarService,
   updateUserCoverImageService,
   updateAccountDetailsService,
@@ -34,18 +33,6 @@ const getUserProfilePosts = asyncHandler(async (req, res) => {
 // -----------------------------
 // Profile Updates / Onboarding (moved)
 // -----------------------------
-const updateAcademicProfile = asyncHandler(async (req, res) => {
-  const { user } = await updateAcademicProfileService(
-    req.user._id,
-    req.user.userType,
-    req.body
-  );
-  return res
-    .status(200)
-    .json(
-      new ApiResponse(200, { user }, "Academic profile updated successfully")
-    );
-});
 
 const updateUserAvatar = asyncHandler(async (req, res) => {
   const avatarLocalPath = req.file?.path;
@@ -101,7 +88,6 @@ const getUserDetails = asyncHandler(async (req, res) => {
 
 export {
   getUserProfilePosts,
-  updateAcademicProfile,
   updateUserAvatar,
   updateUserCoverImage,
   updateAccountDetails,

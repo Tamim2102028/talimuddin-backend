@@ -1,19 +1,11 @@
 import { User } from "../models/user.model.js";
-import { Friendship } from "../models/friendship.model.js";
-import { Follow } from "../models/follow.model.js";
 import { Post } from "../models/post.model.js";
-import { Institution } from "../models/institution.model.js";
-import { Department } from "../models/department.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { uploadFile, deleteFile } from "../utils/cloudinaryFileUpload.js";
-import { findInstitutionByEmailDomain } from "./academic.service.js";
 import {
   USER_TYPES,
-  PROFILE_RELATION_STATUS,
   POST_TARGET_MODELS,
   POST_VISIBILITY,
-  FRIENDSHIP_STATUS,
-  FOLLOW_TARGET_MODELS,
 } from "../constants/index.js";
 import jwt from "jsonwebtoken";
 
@@ -53,35 +45,21 @@ export const registerUserService = async (userData) => {
     throw new ApiError(403, "Restricted user type.");
   }
 
-  // 3. Check for institution using email domain
-  const institution = await findInstitutionByEmailDomain(email);
-
-  // 5. Create User Payload with conditional institution linking
+  // Create User Payload
   const userPayload = {
     fullName,
     email,
     password,
     userName,
     userType,
-    agreedToTerms: agreeToTerms, // Backend এ সেভ করছি
-    termsAgreedAt: new Date(), // রাজি হওয়ার সঠিক সময় টি সেভ করে রাখছি
-    // Default values
-    isStudentEmail: false,
+    agreedToTerms: agreeToTerms,
+    termsAgreedAt: new Date(),
   };
 
-  // If an institution was found, link it to the user
-
-  if (institution) {
-    userPayload.isStudentEmail = true;
-    userPayload.institution = institution._id;
-    userPayload.institutionType = institution.type;
-  }
-
   const user = await User.create(userPayload);
-  const createdUser = await User.findById(user._id)
-    .select("-password -refreshToken")
-    .populate("institution", "name code logo")
-    .populate("academicInfo.department", "name code logo");
+  const createdUser = await User.findById(user._id).select(
+    "-password -refreshToken"
+  );
 
   if (!createdUser) {
     throw new ApiError(500, "Something went wrong while registering the user");
@@ -121,10 +99,9 @@ export const loginUserService = async ({ email, userName, password }) => {
     user._id
   );
 
-  const loggedInUser = await User.findById(user._id)
-    .select("-password -refreshToken")
-    .populate("institution", "name code logo")
-    .populate("academicInfo.department", "name code logo");
+  const loggedInUser = await User.findById(user._id).select(
+    "-password -refreshToken"
+  );
 
   return { user: loggedInUser, accessToken, refreshToken };
 };
@@ -192,82 +169,6 @@ export const changePasswordService = async (
 };
 
 // ==========================================
-// 🚀 7. UPDATE ACADEMIC PROFILE SERVICE
-// ==========================================
-export const updateAcademicProfileService = async (
-  userId,
-  userType,
-  updateData
-) => {
-  const {
-    institution: institutionId,
-    department: departmentId,
-    session,
-    section,
-    studentId,
-    teacherId,
-    rank,
-    officeHours,
-  } = updateData;
-
-  const existingUser = await User.findById(userId);
-  if (!existingUser) throw new ApiError(404, "User not found");
-
-  // Verify and set Institution
-  let effectiveInstitution = existingUser.institution;
-  if (institutionId) {
-    const inst = await Institution.findById(institutionId);
-    if (!inst)
-      throw new ApiError(404, "Institution not found with provided ID");
-    effectiveInstitution = institutionId;
-  }
-
-  // Verify and set Department
-  let effectiveDepartment = existingUser.academicInfo?.department;
-  if (departmentId) {
-    const dept = await Department.findById(departmentId);
-    if (!dept) throw new ApiError(404, "Department not found with provided ID");
-    effectiveDepartment = departmentId;
-  }
-
-  if (!effectiveInstitution || !effectiveDepartment) {
-    throw new ApiError(400, "Institution and Department are required");
-  }
-
-  let academicInfoPayload = {
-    ...(existingUser.academicInfo ? existingUser.academicInfo.toObject() : {}),
-    department: effectiveDepartment,
-  };
-
-  if (userType === USER_TYPES.STUDENT) {
-    if (session) academicInfoPayload.session = session;
-    if (section !== undefined) academicInfoPayload.section = section;
-    if (studentId !== undefined) academicInfoPayload.studentId = studentId;
-  } else if (userType === USER_TYPES.TEACHER) {
-    if (teacherId !== undefined) academicInfoPayload.teacherId = teacherId;
-    if (rank !== undefined) academicInfoPayload.rank = rank;
-    if (officeHours !== undefined)
-      academicInfoPayload.officeHours = officeHours;
-  }
-
-  const user = await User.findByIdAndUpdate(
-    userId,
-    {
-      $set: {
-        institution: effectiveInstitution,
-        academicInfo: academicInfoPayload,
-      },
-    },
-    { new: true }
-  )
-    .populate("institution", "name code logo")
-    .populate("academicInfo.department", "name code logo")
-    .select("-password -refreshToken");
-
-  return { user };
-};
-
-// ==========================================
 // 🚀 8. UPDATE AVATAR SERVICE
 // ==========================================
 export const updateUserAvatarService = async (userId, avatarLocalPath) => {
@@ -297,10 +198,7 @@ export const updateUserAvatarService = async (userId, avatarLocalPath) => {
     userId,
     { $set: { avatar: avatar.url } },
     { new: true }
-  )
-    .populate("institution", "name code logo")
-    .populate("academicInfo.department", "name code logo")
-    .select("-password");
+  ).select("-password");
 
   return { user };
 };
@@ -341,10 +239,7 @@ export const updateUserCoverImageService = async (
     userId,
     { $set: { coverImage: coverImage.url } },
     { new: true }
-  )
-    .populate("institution", "name code logo")
-    .populate("academicInfo.department", "name code logo")
-    .select("-password");
+  ).select("-password");
 
   return { user };
 };
@@ -365,10 +260,7 @@ export const updateAccountDetailsService = async (userId, updateData) => {
     userId,
     { $set: updateData },
     { new: true }
-  )
-    .populate("institution", "name code logo")
-    .populate("academicInfo.department", "name code logo")
-    .select("-password -refreshToken");
+  ).select("-password -refreshToken");
 
   return { user };
 };
@@ -384,10 +276,9 @@ export const getUserProfileHeaderService = async (
     throw new ApiError(400, "Username is required");
   }
 
-  const user = await User.findOne({ userName: targetUsername })
-    .select("-password -refreshToken")
-    .populate("institution", "name code logo")
-    .populate("academicInfo.department", "name code logo");
+  const user = await User.findOne({ userName: targetUsername }).select(
+    "-password -refreshToken"
+  );
 
   if (!user) {
     throw new ApiError(404, "User not found");
@@ -395,56 +286,10 @@ export const getUserProfileHeaderService = async (
 
   const isSelf =
     currentUserId && currentUserId.toString() === user._id.toString();
-  let relationStatus = null;
-  let isFollowing = false;
-  let isBlockedByMe = false;
-  let isBlockedByTarget = false;
-
-  if (isSelf) {
-  } else if (currentUserId) {
-    // Friendship Status
-    const friendship = await Friendship.findOne({
-      $or: [
-        { requester: currentUserId, recipient: user._id },
-        { requester: user._id, recipient: currentUserId },
-      ],
-    });
-
-    if (friendship) {
-      if (friendship.status === FRIENDSHIP_STATUS.ACCEPTED) {
-        relationStatus = PROFILE_RELATION_STATUS.FRIEND;
-      } else if (friendship.status === FRIENDSHIP_STATUS.BLOCKED) {
-        relationStatus = PROFILE_RELATION_STATUS.BLOCKED;
-        if (friendship.requester.toString() === currentUserId.toString()) {
-          isBlockedByMe = true;
-        } else {
-          isBlockedByTarget = true;
-        }
-      } else if (friendship.status === FRIENDSHIP_STATUS.PENDING) {
-        if (friendship.requester.toString() === currentUserId.toString()) {
-          relationStatus = PROFILE_RELATION_STATUS.REQUEST_SENT;
-        } else {
-          relationStatus = PROFILE_RELATION_STATUS.REQUEST_RECEIVED;
-        }
-      }
-    }
-
-    // Follow Status
-    const follow = await Follow.findOne({
-      follower: currentUserId,
-      following: user._id,
-      followingModel: FOLLOW_TARGET_MODELS.USER,
-    });
-    if (follow) isFollowing = true;
-  }
 
   return {
     user,
     meta: {
-      profile_relation_status: relationStatus,
-      isFollowing,
-      isBlockedByMe,
-      isBlockedByTarget,
       isOwnProfile: isSelf,
     },
   };
@@ -454,12 +299,9 @@ export const getUserProfileHeaderService = async (
 // 🚀 12. GET USER DETAILS SERVICE
 // ==========================================
 export const getUserDetailsService = async (username) => {
-  const user = await User.findOne({ userName: username })
-    .select("-password -refreshToken")
-    .populate([
-      { path: "institution", select: "name code logo" },
-      { path: "academicInfo.department", select: "name code logo" },
-    ]);
+  const user = await User.findOne({ userName: username }).select(
+    "-password -refreshToken"
+  );
 
   if (!user) {
     throw new ApiError(404, "User not found");

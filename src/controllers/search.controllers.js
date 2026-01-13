@@ -35,16 +35,7 @@ const globalSearch = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Search query must be at least 2 characters long");
   }
 
-  const validTypes = [
-    "all",
-    "users",
-    "posts",
-    "groups",
-    "institutions",
-    "departments",
-    "comments",
-    "hashtags",
-  ];
+  const validTypes = ["all", "users", "posts", "rooms", "comments", "hashtags"];
   if (!validTypes.includes(type)) {
     throw new ApiError(
       400,
@@ -211,179 +202,6 @@ const searchPosts = asyncHandler(async (req, res) => {
 });
 
 /**
- * Search groups specifically
- * GET /api/v1/search/groups?q={query}&page={page}&limit={limit}
- */
-const searchGroups = asyncHandler(async (req, res) => {
-  const { q: query, page = 1, limit = 20 } = req.query;
-  const currentUserId = req.user._id;
-
-  // Input validation
-  if (!query || typeof query !== "string" || query.trim().length < 2) {
-    throw new ApiError(400, "Search query must be at least 2 characters long");
-  }
-
-  const pageNum = parseInt(page);
-  const limitNum = parseInt(limit);
-
-  if (isNaN(pageNum) || pageNum < 1) {
-    throw new ApiError(400, "Page must be a positive integer");
-  }
-
-  if (isNaN(limitNum) || limitNum < 1 || limitNum > 50) {
-    throw new ApiError(400, "Limit must be between 1 and 50");
-  }
-
-  try {
-    const startTime = Date.now();
-
-    const result = await SearchService.searchGroupsByQuery(
-      query,
-      currentUserId,
-      { page: pageNum, limit: limitNum }
-    );
-
-    const searchTime = Date.now() - startTime;
-
-    return res.status(200).json(
-      new ApiResponse(
-        200,
-        {
-          groups: result.groups,
-          pagination: {
-            currentPage: pageNum,
-            hasMore: result.hasMore,
-            totalCount: result.totalCount,
-          },
-          query,
-          searchTime,
-        },
-        `Found ${result.groups.length} groups`
-      )
-    );
-  } catch (error) {
-    if (error instanceof ApiError) {
-      throw error;
-    }
-    throw new ApiError(500, `Group search failed: ${error.message}`);
-  }
-});
-
-/**
- * Search institutions specifically
- * GET /api/v1/search/institutions?q={query}&page={page}&limit={limit}
- */
-const searchInstitutions = asyncHandler(async (req, res) => {
-  const { q: query, page = 1, limit = 15 } = req.query;
-
-  // Input validation
-  if (!query || typeof query !== "string" || query.trim().length < 2) {
-    throw new ApiError(400, "Search query must be at least 2 characters long");
-  }
-
-  const pageNum = parseInt(page);
-  const limitNum = parseInt(limit);
-
-  if (isNaN(pageNum) || pageNum < 1) {
-    throw new ApiError(400, "Page must be a positive integer");
-  }
-
-  if (isNaN(limitNum) || limitNum < 1 || limitNum > 30) {
-    throw new ApiError(400, "Limit must be between 1 and 30");
-  }
-
-  try {
-    const startTime = Date.now();
-
-    const result = await SearchService.searchInstitutionsByQuery(query, {
-      page: pageNum,
-      limit: limitNum,
-    });
-
-    const searchTime = Date.now() - startTime;
-
-    return res.status(200).json(
-      new ApiResponse(
-        200,
-        {
-          institutions: result.institutions,
-          pagination: {
-            currentPage: pageNum,
-            hasMore: result.hasMore,
-            totalCount: result.totalCount,
-          },
-          query,
-          searchTime,
-        },
-        `Found ${result.institutions.length} institutions`
-      )
-    );
-  } catch (error) {
-    if (error instanceof ApiError) {
-      throw error;
-    }
-    throw new ApiError(500, `Institution search failed: ${error.message}`);
-  }
-});
-
-/**
- * Search departments specifically
- * GET /api/v1/search/departments?q={query}&page={page}&limit={limit}
- */
-const searchDepartments = asyncHandler(async (req, res) => {
-  const { q: query, page = 1, limit = 20 } = req.query;
-
-  // Input validation
-  if (!query || typeof query !== "string" || query.trim().length < 2) {
-    throw new ApiError(400, "Search query must be at least 2 characters long");
-  }
-
-  const pageNum = parseInt(page);
-  const limitNum = parseInt(limit);
-
-  if (isNaN(pageNum) || pageNum < 1) {
-    throw new ApiError(400, "Page must be a positive integer");
-  }
-
-  if (isNaN(limitNum) || limitNum < 1 || limitNum > 50) {
-    throw new ApiError(400, "Limit must be between 1 and 50");
-  }
-
-  try {
-    const startTime = Date.now();
-
-    const result = await SearchService.searchDepartmentsByQuery(query, {
-      page: pageNum,
-      limit: limitNum,
-    });
-
-    const searchTime = Date.now() - startTime;
-
-    return res.status(200).json(
-      new ApiResponse(
-        200,
-        {
-          departments: result.departments,
-          pagination: {
-            currentPage: pageNum,
-            hasMore: result.hasMore,
-            totalCount: result.totalCount,
-          },
-          query,
-          searchTime,
-        },
-        `Found ${result.departments.length} departments`
-      )
-    );
-  } catch (error) {
-    if (error instanceof ApiError) {
-      throw error;
-    }
-    throw new ApiError(500, `Department search failed: ${error.message}`);
-  }
-});
-
-/**
  * Search comments specifically
  * GET /api/v1/search/comments?q={query}&page={page}&limit={limit}
  */
@@ -490,9 +308,6 @@ export {
   globalSearch,
   searchUsers,
   searchPosts,
-  searchGroups,
-  searchInstitutions,
-  searchDepartments,
   searchComments,
   getSearchSuggestions,
 };

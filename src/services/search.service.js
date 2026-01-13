@@ -1,17 +1,9 @@
 import { User } from "../models/user.model.js";
 import { Post } from "../models/post.model.js";
-import { Group } from "../models/group.model.js";
-import { Institution } from "../models/institution.model.js";
-import { Department } from "../models/department.model.js";
 import { Comment } from "../models/comment.model.js";
+import { Room } from "../models/room.model.js";
 import { ApiError } from "../utils/ApiError.js";
-import {
-  POST_VISIBILITY,
-  GROUP_PRIVACY,
-  ACCOUNT_STATUS,
-  GROUP_MEMBERSHIP_STATUS,
-} from "../constants/index.js";
-import { GroupMembership } from "../models/groupMembership.model.js";
+import { POST_VISIBILITY, ACCOUNT_STATUS } from "../constants/index.js";
 
 class SearchService {
   /**
@@ -61,41 +53,7 @@ class SearchService {
         );
       }
 
-      if (isAll || type === "groups") {
-        searchPromises.push(
-          this.searchGroupsByQuery(searchQuery, filters.currentUserId, {
-            page: isAll ? 1 : page,
-            limit: Math.min(resultsLimit, 20),
-          }).then((data) => {
-            results.groups = data.groups;
-            counts.groups = data.totalCount;
-          })
-        );
-      }
-
-      if (isAll || type === "institutions") {
-        searchPromises.push(
-          this.searchInstitutionsByQuery(searchQuery, {
-            page: isAll ? 1 : page,
-            limit: Math.min(resultsLimit, 15),
-          }).then((data) => {
-            results.institutions = data.institutions;
-            counts.institutions = data.totalCount;
-          })
-        );
-      }
-
-      if (isAll || type === "departments") {
-        searchPromises.push(
-          this.searchDepartmentsByQuery(searchQuery, {
-            page: isAll ? 1 : page,
-            limit: Math.min(resultsLimit, 20),
-          }).then((data) => {
-            results.departments = data.departments;
-            counts.departments = data.totalCount;
-          })
-        );
-      }
+      // Groups, institutions, and departments removed
 
       if (isAll || type === "comments") {
         searchPromises.push(
@@ -169,11 +127,7 @@ class SearchService {
         .sort({ score: { $meta: "textScore" }, fullName: 1 })
         .skip(skip)
         .limit(limit)
-        .select(
-          "fullName userName email avatar institution userType academicInfo.department connectionsCount"
-        )
-        .populate("institution", "name type")
-        .populate("academicInfo.department", "name code")
+        .select("fullName userName email avatar userType")
         .lean();
 
       // Get total count for pagination
@@ -246,142 +200,9 @@ class SearchService {
   }
 
   /**
-   * Search groups by query with privacy controls
+   * Search groups, institutions, and departments - REMOVED
+   * These features are not part of the Islamic academy platform
    */
-  async searchGroupsByQuery(query, currentUserId, pagination = {}) {
-    const { page = 1, limit = 20 } = pagination;
-    const skip = (page - 1) * limit;
-
-    try {
-      // Build search criteria - only public groups or groups user has access to
-      const searchCriteria = {
-        $text: { $search: query },
-        isDeleted: false,
-        privacy: { $in: [GROUP_PRIVACY.PUBLIC, GROUP_PRIVACY.CLOSED] }, // Exclude private groups for now
-      };
-
-      // Execute search with text score for relevance
-      const groups = await Group.find(searchCriteria, {
-        score: { $meta: "textScore" },
-      })
-        .sort({ score: { $meta: "textScore" }, membersCount: -1 })
-        .skip(skip)
-        .limit(limit)
-        .populate("institution", "name type")
-        .select(
-          "name slug description avatar privacy type membersCount postsCount institution creator"
-        )
-        .lean();
-
-      // Check user membership status for each group
-      if (currentUserId && groups.length > 0) {
-        const groupIds = groups.map((group) => group._id);
-        const memberships = await GroupMembership.find({
-          group: { $in: groupIds },
-          user: currentUserId,
-          status: GROUP_MEMBERSHIP_STATUS.JOINED,
-        })
-          .select("group role")
-          .lean();
-
-        const membershipMap = memberships.reduce((map, membership) => {
-          map[membership.group.toString()] = membership.role;
-          return map;
-        }, {});
-
-        // Add membership info to groups
-        groups.forEach((group) => {
-          group.userMembership = membershipMap[group._id.toString()] || null;
-        });
-      }
-
-      // Get total count for pagination
-      const totalCount = await Group.countDocuments(searchCriteria);
-
-      return {
-        groups,
-        totalCount,
-        hasMore: skip + groups.length < totalCount,
-      };
-    } catch (error) {
-      throw new ApiError(500, `Group search failed: ${error.message}`);
-    }
-  }
-
-  /**
-   * Search institutions by query
-   */
-  async searchInstitutionsByQuery(query, pagination = {}) {
-    const { page = 1, limit = 15 } = pagination;
-    const skip = (page - 1) * limit;
-
-    try {
-      // Build search criteria
-      const searchCriteria = {
-        $text: { $search: query },
-        isActive: true,
-      };
-
-      // Execute search with text score for relevance
-      const institutions = await Institution.find(searchCriteria, {
-        score: { $meta: "textScore" },
-      })
-        .sort({ score: { $meta: "textScore" }, name: 1 })
-        .skip(skip)
-        .limit(limit)
-        .select("name code type category location logo website postsCount")
-        .lean();
-
-      // Get total count for pagination
-      const totalCount = await Institution.countDocuments(searchCriteria);
-
-      return {
-        institutions,
-        totalCount,
-        hasMore: skip + institutions.length < totalCount,
-      };
-    } catch (error) {
-      throw new ApiError(500, `Institution search failed: ${error.message}`);
-    }
-  }
-
-  /**
-   * Search departments by query
-   */
-  async searchDepartmentsByQuery(query, pagination = {}) {
-    const { page = 1, limit = 20 } = pagination;
-    const skip = (page - 1) * limit;
-
-    try {
-      // Build search criteria
-      const searchCriteria = {
-        $text: { $search: query },
-        status: "active",
-      };
-
-      // Execute search with text score for relevance
-      const departments = await Department.find(searchCriteria, {
-        score: { $meta: "textScore" },
-      })
-        .sort({ score: { $meta: "textScore" }, name: 1 })
-        .skip(skip)
-        .limit(limit)
-        .populate("institution", "name type")
-        .select("name code institution description establishedYear postsCount")
-        .lean();
-
-      // Get total count for pagination
-      const totalCount = await Department.countDocuments(searchCriteria);
-
-      return {
-        departments,
-        totalCount,
-        hasMore: skip + departments.length < totalCount,
-      };
-    } catch (error) {
-      throw new ApiError(500, `Department search failed: ${error.message}`);
-    }
-  }
 
   /**
    * Search comments by query with post context
@@ -480,26 +301,6 @@ class SearchService {
           subtitle: `@${user.userName}`,
           avatar: user.avatar,
           id: user._id,
-        });
-      });
-
-      // Get top group suggestions
-      const groupSuggestions = await Group.find({
-        name: { $regex: searchQuery, $options: "i" },
-        isDeleted: false,
-        privacy: { $in: [GROUP_PRIVACY.PUBLIC, GROUP_PRIVACY.CLOSED] },
-      })
-        .limit(3)
-        .select("name description avatar membersCount")
-        .lean();
-
-      groupSuggestions.forEach((group) => {
-        suggestions.push({
-          type: "group",
-          text: group.name,
-          subtitle: `${group.membersCount} members`,
-          avatar: group.avatar,
-          id: group._id,
         });
       });
 

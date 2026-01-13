@@ -9,17 +9,9 @@ import {
   updatePostService,
   togglePinPostService,
 } from "../../services/common/post.service.js";
-import { Group } from "../../models/group.model.js";
-import { GroupMembership } from "../../models/groupMembership.model.js";
 import { User } from "../../models/user.model.js";
-
-import {
-  POST_TARGET_MODELS,
-  GROUP_ROLES,
-  GROUP_MEMBERSHIP_STATUS,
-} from "../../constants/index.js";
-import { Department } from "../../models/department.model.js";
-import { Institution } from "../../models/institution.model.js";
+import { Room } from "../../models/room.model.js";
+import { POST_TARGET_MODELS } from "../../constants/index.js";
 
 const createPost = asyncHandler(async (req, res) => {
   const { postOnModel, postOnId } = req.body;
