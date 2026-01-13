@@ -8,7 +8,6 @@ import { uploadImage } from "../middlewares/multer.middleware.js";
 import {
   getUserProfilePosts,
   getUserProfileHeader,
-  getUserDetails,
   updateAccountDetails,
   updateUserAvatar,
   updateUserCoverImage,
@@ -22,13 +21,8 @@ router.use(verifyJWT);
 // GET /profile/:username
 router.get("/:username", getUserProfileHeader);
 
-// GET /profile/details/:username
-router.get("/details/:username", getUserDetails);
-
 // update general details
 router.patch("/update-general", updateAccountDetails);
-
-
 
 // update avatar
 router.patch("/avatar", uploadImage.single("avatar"), updateUserAvatar);

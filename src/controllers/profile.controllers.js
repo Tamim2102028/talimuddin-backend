@@ -6,7 +6,6 @@ import {
   updateUserCoverImageService,
   updateAccountDetailsService,
   getUserProfileHeaderService,
-  getUserDetailsService,
 } from "../services/auth.service.js";
 
 // -----------------------------
@@ -78,19 +77,10 @@ const getUserProfileHeader = asyncHandler(async (req, res) => {
     );
 });
 
-const getUserDetails = asyncHandler(async (req, res) => {
-  const { username } = req.params;
-  const { user } = await getUserDetailsService(username);
-  return res
-    .status(200)
-    .json(new ApiResponse(200, { user }, "User details fetched successfully"));
-});
-
 export {
   getUserProfilePosts,
   updateUserAvatar,
   updateUserCoverImage,
   updateAccountDetails,
   getUserProfileHeader,
-  getUserDetails,
 };
