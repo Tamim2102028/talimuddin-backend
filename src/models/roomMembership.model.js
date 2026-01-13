@@ -16,6 +16,13 @@ const roomMembershipSchema = new Schema(
       index: true,
     },
 
+    // Join Request Status
+    isPending: {
+      type: Boolean,
+      default: true,
+      index: true,
+    },
+
     // CR (Class Representative): Student can be promoted to CR
     isCR: {
       type: Boolean,
@@ -41,6 +48,7 @@ const roomMembershipSchema = new Schema(
 // Unique Constraint
 roomMembershipSchema.index({ room: 1, user: 1 }, { unique: true });
 roomMembershipSchema.index({ user: 1, isHidden: 1 });
+roomMembershipSchema.index({ room: 1, isPending: 1 });
 
 export const RoomMembership = mongoose.model(
   "RoomMembership",

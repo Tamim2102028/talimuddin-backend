@@ -1,5 +1,8 @@
 import { Room } from "../models/room.model.js";
-import { RoomMembership } from "../models/roomMembership.model.js";
+import {
+  RoomMembership,
+  MEMBERSHIP_STATUS,
+} from "../models/roomMembership.model.js";
 import { User } from "../models/user.model.js";
 import { Post } from "../models/post.model.js";
 import { ReadPost } from "../models/readPost.model.js";
@@ -73,6 +76,7 @@ const roomActions = {
     await RoomMembership.create({
       room: room._id,
       user: userId,
+      status: MEMBERSHIP_STATUS.ACCEPTED,
       isCR: false,
       isAdmin: false,
       isHidden: false,
@@ -87,7 +91,7 @@ const roomActions = {
     return { room, meta };
   },
 
-  // 🚀 JOIN ROOM (via join code only)
+  // 🚀 JOIN ROOM (via join code only) - Creates PENDING request
   joinRoomService: async (userId, joinCode) => {
     // Find room by join code
     const room = await Room.findOne({ joinCode });
@@ -104,31 +108,39 @@ const roomActions = {
       throw new ApiError(403, "Cannot join archived room");
     }
 
-    // Check if already member
+    // Check if already has a membership (any status)
     const existing = await RoomMembership.findOne({
       room: room._id,
       user: userId,
     });
 
     if (existing) {
-      throw new ApiError(400, "Already a member of this room");
+      if (existing.status === MEMBERSHIP_STATUS.ACCEPTED) {
+        throw new ApiError(400, "Already a member of this room");
+      } else if (existing.status === MEMBERSHIP_STATUS.PENDING) {
+        throw new ApiError(400, "Join request already pending");
+      } else if (existing.status === MEMBERSHIP_STATUS.REJECTED) {
+        throw new ApiError(
+          403,
+          "Your previous join request was rejected. Please contact the room admin."
+        );
+      }
     }
 
-    // Add as member
+    // Create PENDING membership request
     await RoomMembership.create({
       room: room._id,
       user: userId,
+      status: MEMBERSHIP_STATUS.PENDING,
       isCR: false,
       isAdmin: false,
       isHidden: false,
     });
 
-    // Increment members count
-    await Room.findByIdAndUpdate(room._id, { $inc: { membersCount: 1 } });
-
     return {
       roomId: room._id,
       roomName: room.name,
+      message: "Join request sent successfully. Waiting for approval.",
     };
   },
 
@@ -303,6 +315,119 @@ const roomActions = {
 
     return { room };
   },
+
+  // 🚀 ACCEPT JOIN REQUEST (Teacher/Admin/Owner)
+  acceptJoinRequestService: async (roomId, membershipId, userId) => {
+    const room = await Room.findById(roomId);
+    if (!room) throw new ApiError(404, "Room not found");
+    if (room.isDeleted) throw new ApiError(404, "Room not found");
+
+    // Get current user info
+    const currentUser = await User.findById(userId);
+    if (!currentUser) throw new ApiError(404, "User not found");
+
+    // Check if user has permission: OWNER, ADMIN, or TEACHER (who is member)
+    const isOwner = currentUser.userType === USER_TYPES.OWNER;
+    const isAdmin = currentUser.userType === USER_TYPES.ADMIN;
+
+    let isTeacher = false;
+    if (currentUser.userType === USER_TYPES.TEACHER) {
+      const userMembership = await RoomMembership.findOne({
+        room: roomId,
+        user: userId,
+        status: MEMBERSHIP_STATUS.ACCEPTED,
+      });
+      isTeacher = !!userMembership;
+    }
+
+    if (!isOwner && !isAdmin && !isTeacher) {
+      throw new ApiError(
+        403,
+        "Only teachers (who are members), admins, or owners can accept join requests"
+      );
+    }
+
+    // Find the pending membership
+    const membership = await RoomMembership.findById(membershipId);
+    if (!membership) {
+      throw new ApiError(404, "Join request not found");
+    }
+
+    if (membership.room.toString() !== roomId.toString()) {
+      throw new ApiError(400, "Invalid request");
+    }
+
+    if (membership.status !== MEMBERSHIP_STATUS.PENDING) {
+      throw new ApiError(400, "This request has already been processed");
+    }
+
+    // Accept the request
+    membership.status = MEMBERSHIP_STATUS.ACCEPTED;
+    await membership.save();
+
+    // Increment members count
+    await Room.findByIdAndUpdate(roomId, { $inc: { membersCount: 1 } });
+
+    return {
+      membershipId: membership._id,
+      message: "Join request accepted successfully",
+    };
+  },
+
+  // 🚀 REJECT JOIN REQUEST (Teacher/Admin/Owner)
+  rejectJoinRequestService: async (roomId, membershipId, userId) => {
+    const room = await Room.findById(roomId);
+    if (!room) throw new ApiError(404, "Room not found");
+    if (room.isDeleted) throw new ApiError(404, "Room not found");
+
+    // Get current user info
+    const currentUser = await User.findById(userId);
+    if (!currentUser) throw new ApiError(404, "User not found");
+
+    // Check if user has permission: OWNER, ADMIN, or TEACHER (who is member)
+    const isOwner = currentUser.userType === USER_TYPES.OWNER;
+    const isAdmin = currentUser.userType === USER_TYPES.ADMIN;
+
+    let isTeacher = false;
+    if (currentUser.userType === USER_TYPES.TEACHER) {
+      const userMembership = await RoomMembership.findOne({
+        room: roomId,
+        user: userId,
+        status: MEMBERSHIP_STATUS.ACCEPTED,
+      });
+      isTeacher = !!userMembership;
+    }
+
+    if (!isOwner && !isAdmin && !isTeacher) {
+      throw new ApiError(
+        403,
+        "Only teachers (who are members), admins, or owners can reject join requests"
+      );
+    }
+
+    // Find the pending membership
+    const membership = await RoomMembership.findById(membershipId);
+    if (!membership) {
+      throw new ApiError(404, "Join request not found");
+    }
+
+    if (membership.room.toString() !== roomId.toString()) {
+      throw new ApiError(400, "Invalid request");
+    }
+
+    if (membership.status !== MEMBERSHIP_STATUS.PENDING) {
+      throw new ApiError(400, "This request has already been processed");
+    }
+
+    // Reject the request
+    membership.status = MEMBERSHIP_STATUS.REJECTED;
+    await membership.save();
+
+    return {
+      membershipId: membership._id,
+      message: "Join request rejected",
+    };
+  },
 };
 
 // ==========================================
@@ -323,6 +448,7 @@ const roomServices = {
     const memberships = await RoomMembership.find({
       user: userId,
       isHidden: false,
+      status: MEMBERSHIP_STATUS.ACCEPTED,
       room: { $in: validRooms },
     })
       .populate({
@@ -752,6 +878,71 @@ const roomPostsAndMembers = {
     };
 
     return { members, pagination, meta };
+  },
+
+  // 🚀 GET PENDING JOIN REQUESTS (Creator or Admin only)
+  getPendingJoinRequestsService: async (
+    roomId,
+    userId,
+    page = 1,
+    limit = 10
+  ) => {
+    const room = await Room.findById(roomId);
+    if (!room) throw new ApiError(404, "Room not found");
+    if (room.isDeleted) throw new ApiError(404, "Room not found");
+
+    // Check if user is creator or admin
+    const isCreator = room.creator.toString() === userId.toString();
+    const userMembership = await RoomMembership.findOne({
+      room: roomId,
+      user: userId,
+      status: MEMBERSHIP_STATUS.ACCEPTED,
+    });
+
+    if (!isCreator && !userMembership?.isAdmin) {
+      throw new ApiError(
+        403,
+        "Only room creator or admin can view join requests"
+      );
+    }
+
+    const skip = (page - 1) * limit;
+
+    const requests = await RoomMembership.find({
+      room: roomId,
+      status: MEMBERSHIP_STATUS.PENDING,
+    })
+      .populate("user", "fullName userName avatar")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    const formattedRequests = requests.map((request) => ({
+      _id: request._id,
+      user: {
+        _id: request.user._id,
+        fullName: request.user.fullName,
+        userName: request.user.userName,
+        avatar: request.user.avatar,
+      },
+      requestedAt: request.createdAt,
+    }));
+
+    const total = await RoomMembership.countDocuments({
+      room: roomId,
+      status: MEMBERSHIP_STATUS.PENDING,
+    });
+
+    const pagination = {
+      totalDocs: total,
+      limit: parseInt(limit),
+      page: parseInt(page),
+      totalPages: Math.ceil(total / limit),
+      hasNextPage: parseInt(page) < Math.ceil(total / limit),
+      hasPrevPage: parseInt(page) > 1,
+    };
+
+    return { requests: formattedRequests, pagination };
   },
 };
 
