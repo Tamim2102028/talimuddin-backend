@@ -8,7 +8,6 @@ const PORT = process.env.PORT || 5000;
 
 connectDB()
   .then(() => {
-    // সার্ভার চালু হওয়ার আগে কোনো এরর হলে ধরার জন্য
     app.on("error", (error) => {
       console.log(`❌ Server Error: ${error}`);
       throw error;
