@@ -44,7 +44,6 @@ const userSchema = new Schema(
     coverImage: {
       type: String,
     },
-    bio: { type: String, trim: true, maxLength: 300 },
 
     gender: { type: String, enum: Object.values(GENDERS) },
     religion: { type: String, enum: Object.values(RELIGIONS) },
