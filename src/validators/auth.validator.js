@@ -1,4 +1,5 @@
 import Joi from "joi";
+import { GENDERS } from "../constants/user.js";
 
 // ১. রেজিস্ট্রেশন স্কিমা
 const userRegisterSchema = Joi.object({
@@ -42,9 +43,9 @@ const userRegisterSchema = Joi.object({
       "string.empty": "Username is required.",
     }),
 
-  gender: Joi.string().valid("male", "female").required().messages({
+  gender: Joi.string().valid(GENDERS.MALE, GENDERS.FEMALE).required().messages({
     "string.empty": "Gender is required",
-    "any.only": "Gender must be either male or female",
+    "any.only": "Gender must be either MALE or FEMALE",
   }),
 
   // ✅ Real World Safety: Backend এও Terms Agreement চেক করা

@@ -6,6 +6,7 @@ import {
   USER_TYPES,
   POST_TARGET_MODELS,
   POST_VISIBILITY,
+  GENDERS,
 } from "../constants/index.js";
 import jwt from "jsonwebtoken";
 
@@ -49,7 +50,7 @@ export const registerUserService = async (userData) => {
 
   // Gender-based default avatar
   const defaultAvatar =
-    gender === "female"
+    gender === GENDERS.FEMALE
       ? "https://res.cloudinary.com/dr7xx5ch4/image/upload/v1768286667/girl_rok2ob.png"
       : "https://res.cloudinary.com/dr7xx5ch4/image/upload/v1768285953/u6eqtyialvxv1oaaymti.png";
 

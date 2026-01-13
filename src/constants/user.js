@@ -10,9 +10,6 @@ export const USER_TYPES = {
   ADMIN: "admin", // Islamic scholars (can post content)
   TEACHER: "teacher", // Branch teachers (3 per branch)
   NORMAL: "normal", // Default for all new users
-
-  // Deprecated - keeping for backward compatibility
-  STUDENT: "STUDENT", // Old academic context - deprecated
 };
 
 export const GENDERS = {
