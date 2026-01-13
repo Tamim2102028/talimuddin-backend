@@ -1,8 +1,5 @@
 import { Room } from "../models/room.model.js";
-import {
-  RoomMembership,
-  MEMBERSHIP_STATUS,
-} from "../models/roomMembership.model.js";
+import { RoomMembership } from "../models/roomMembership.model.js";
 import { User } from "../models/user.model.js";
 import { Post } from "../models/post.model.js";
 import { ReadPost } from "../models/readPost.model.js";
@@ -58,9 +55,8 @@ const roomActions = {
         "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=800&h=400&fit=crop",
       creator: userId,
       joinCode,
-      isArchived: false,
       isDeleted: false,
-      membersCount: 1,
+      membersCount: 0,
       postsCount: 0,
       settings: {
         allowStudentPosting: roomData.allowStudentPosting ?? true,
@@ -72,18 +68,10 @@ const roomActions = {
       throw new ApiError(500, "Failed to create room");
     }
 
-    // Add Creator as Member
-    await RoomMembership.create({
-      room: room._id,
-      user: userId,
-      status: MEMBERSHIP_STATUS.ACCEPTED,
-      isCR: false,
-      isAdmin: false,
-      isHidden: false,
-    });
+    // Owner doesn't become a member, but has full access
 
     const meta = {
-      isMember: true,
+      isMember: false,
       isCreator: true,
       joinCode,
     };
@@ -104,26 +92,17 @@ const roomActions = {
       throw new ApiError(404, "Room not found");
     }
 
-    if (room.isArchived) {
-      throw new ApiError(403, "Cannot join archived room");
-    }
-
-    // Check if already has a membership (any status)
+    // Check if already has a membership
     const existing = await RoomMembership.findOne({
       room: room._id,
       user: userId,
     });
 
     if (existing) {
-      if (existing.status === MEMBERSHIP_STATUS.ACCEPTED) {
-        throw new ApiError(400, "Already a member of this room");
-      } else if (existing.status === MEMBERSHIP_STATUS.PENDING) {
+      if (existing.isPending) {
         throw new ApiError(400, "Join request already pending");
-      } else if (existing.status === MEMBERSHIP_STATUS.REJECTED) {
-        throw new ApiError(
-          403,
-          "Your previous join request was rejected. Please contact the room admin."
-        );
+      } else {
+        throw new ApiError(400, "Already a member of this room");
       }
     }
 
@@ -131,51 +110,15 @@ const roomActions = {
     await RoomMembership.create({
       room: room._id,
       user: userId,
-      status: MEMBERSHIP_STATUS.PENDING,
+      isPending: true,
       isCR: false,
       isAdmin: false,
-      isHidden: false,
     });
 
     return {
       roomId: room._id,
       roomName: room.name,
       message: "Join request sent successfully. Waiting for approval.",
-    };
-  },
-
-  // 🚀 ARCHIVE/UNARCHIVE ROOM (Creator or Admin)
-  toggleArchiveRoomService: async (roomId, userId) => {
-    const room = await Room.findById(roomId);
-
-    if (!room) {
-      throw new ApiError(404, "Room not found");
-    }
-
-    if (room.isDeleted) {
-      throw new ApiError(404, "Room not found");
-    }
-
-    // Check if user is creator or admin
-    const isCreator = room.creator.toString() === userId.toString();
-    const membership = await RoomMembership.findOne({
-      room: roomId,
-      user: userId,
-    });
-
-    if (!isCreator && !membership?.isAdmin) {
-      throw new ApiError(
-        403,
-        "Only room creator or admin can archive/unarchive room"
-      );
-    }
-
-    room.isArchived = !room.isArchived;
-    await room.save();
-
-    return {
-      roomId: room._id,
-      isArchived: room.isArchived,
     };
   },
 
@@ -201,38 +144,6 @@ const roomActions = {
 
     return {
       roomId: room._id,
-    };
-  },
-
-  // 🚀 HIDE ROOM (Member only - personal action)
-  hideRoomService: async (roomId, userId) => {
-    const room = await Room.findById(roomId);
-
-    if (!room) {
-      throw new ApiError(404, "Room not found");
-    }
-
-    if (room.isDeleted) {
-      throw new ApiError(404, "Room not found");
-    }
-
-    // Check membership
-    const membership = await RoomMembership.findOne({
-      room: roomId,
-      user: userId,
-    });
-
-    if (!membership) {
-      throw new ApiError(403, "You are not a member of this room");
-    }
-
-    // Toggle hide status
-    membership.isHidden = !membership.isHidden;
-    await membership.save();
-
-    return {
-      roomId: room._id,
-      isHidden: membership.isHidden,
     };
   },
 
@@ -335,7 +246,7 @@ const roomActions = {
       const userMembership = await RoomMembership.findOne({
         room: roomId,
         user: userId,
-        status: MEMBERSHIP_STATUS.ACCEPTED,
+        isPending: false,
       });
       isTeacher = !!userMembership;
     }
@@ -357,12 +268,12 @@ const roomActions = {
       throw new ApiError(400, "Invalid request");
     }
 
-    if (membership.status !== MEMBERSHIP_STATUS.PENDING) {
-      throw new ApiError(400, "This request has already been processed");
+    if (!membership.isPending) {
+      throw new ApiError(400, "This request has already been accepted");
     }
 
     // Accept the request
-    membership.status = MEMBERSHIP_STATUS.ACCEPTED;
+    membership.isPending = false;
     await membership.save();
 
     // Increment members count
@@ -374,7 +285,7 @@ const roomActions = {
     };
   },
 
-  // 🚀 REJECT JOIN REQUEST (Teacher/Admin/Owner)
+  // 🚀 REJECT JOIN REQUEST (Teacher/Admin/Owner) - Deletes the request
   rejectJoinRequestService: async (roomId, membershipId, userId) => {
     const room = await Room.findById(roomId);
     if (!room) throw new ApiError(404, "Room not found");
@@ -393,7 +304,7 @@ const roomActions = {
       const userMembership = await RoomMembership.findOne({
         room: roomId,
         user: userId,
-        status: MEMBERSHIP_STATUS.ACCEPTED,
+        isPending: false,
       });
       isTeacher = !!userMembership;
     }
@@ -415,16 +326,15 @@ const roomActions = {
       throw new ApiError(400, "Invalid request");
     }
 
-    if (membership.status !== MEMBERSHIP_STATUS.PENDING) {
-      throw new ApiError(400, "This request has already been processed");
+    if (!membership.isPending) {
+      throw new ApiError(400, "This request has already been accepted");
     }
 
-    // Reject the request
-    membership.status = MEMBERSHIP_STATUS.REJECTED;
-    await membership.save();
+    // Delete the request
+    await RoomMembership.findByIdAndDelete(membershipId);
 
     return {
-      membershipId: membership._id,
+      membershipId,
       message: "Join request rejected",
     };
   },
@@ -438,17 +348,15 @@ const roomServices = {
   getMyRoomsService: async (userId, page = 1, limit = 10) => {
     const skip = (page - 1) * limit;
 
-    // Get all room IDs that are not deleted and not archived
+    // Get all room IDs that are not deleted
     const validRooms = await Room.find({
       isDeleted: false,
-      isArchived: false,
     }).distinct("_id");
 
     // Find memberships for valid rooms only
     const memberships = await RoomMembership.find({
       user: userId,
-      isHidden: false,
-      status: MEMBERSHIP_STATUS.ACCEPTED,
+      isPending: false,
       room: { $in: validRooms },
     })
       .populate({
@@ -480,7 +388,6 @@ const roomServices = {
         postsCount: room.postsCount,
         joinCode: room.joinCode,
         isCR: membership.isCR,
-        isArchived: room.isArchived,
         createdAt: room.createdAt,
       };
     });
@@ -488,143 +395,7 @@ const roomServices = {
     // Get total count
     const totalDocs = await RoomMembership.countDocuments({
       user: userId,
-      isHidden: false,
-      room: { $in: validRooms },
-    });
-
-    const pagination = {
-      totalDocs,
-      limit: parseInt(limit),
-      page: parseInt(page),
-      totalPages: Math.ceil(totalDocs / limit),
-      hasNextPage: parseInt(page) < Math.ceil(totalDocs / limit),
-      hasPrevPage: parseInt(page) > 1,
-    };
-
-    return { rooms, pagination };
-  },
-
-  // 🚀 GET HIDDEN ROOMS
-  getHiddenRoomsService: async (userId, page = 1, limit = 10) => {
-    const skip = (page - 1) * limit;
-
-    // Get all room IDs that are not deleted and not archived
-    const validRooms = await Room.find({
-      isDeleted: false,
-      isArchived: false, // Only non-archived rooms
-    }).distinct("_id");
-
-    // Find memberships for valid rooms only
-    const memberships = await RoomMembership.find({
-      user: userId,
-      isHidden: true,
-      room: { $in: validRooms },
-    })
-      .populate({
-        path: "room",
-        populate: {
-          path: "creator",
-          select: "fullName userName avatar",
-        },
-      })
-      .skip(skip)
-      .limit(parseInt(limit))
-      .sort({ createdAt: -1 });
-
-    const rooms = memberships.map((membership) => {
-      const room = membership.room;
-      return {
-        _id: room._id,
-        name: room.name,
-        description: room.description,
-        coverImage: room.coverImage,
-        roomType: room.roomType,
-        creator: {
-          _id: room.creator._id,
-          fullName: room.creator.fullName,
-          userName: room.creator.userName,
-          avatar: room.creator.avatar,
-        },
-        membersCount: room.membersCount,
-        postsCount: room.postsCount,
-        joinCode: room.joinCode,
-        isCR: membership.isCR,
-        isArchived: room.isArchived,
-        createdAt: room.createdAt,
-      };
-    });
-
-    // Get total count
-    const totalDocs = await RoomMembership.countDocuments({
-      user: userId,
-      isHidden: true,
-      room: { $in: validRooms },
-    });
-
-    const pagination = {
-      totalDocs,
-      limit: parseInt(limit),
-      page: parseInt(page),
-      totalPages: Math.ceil(totalDocs / limit),
-      hasNextPage: parseInt(page) < Math.ceil(totalDocs / limit),
-      hasPrevPage: parseInt(page) > 1,
-    };
-
-    return { rooms, pagination };
-  },
-
-  // 🚀 GET ARCHIVED ROOMS
-  getArchivedRoomsService: async (userId, page = 1, limit = 10) => {
-    const skip = (page - 1) * limit;
-
-    // Get all room IDs that are not deleted and are archived
-    const validRooms = await Room.find({
-      isDeleted: false,
-      isArchived: true,
-    }).distinct("_id");
-
-    // Find memberships for valid rooms (both hidden and non-hidden)
-    const memberships = await RoomMembership.find({
-      user: userId,
-      room: { $in: validRooms },
-    })
-      .populate({
-        path: "room",
-        populate: {
-          path: "creator",
-          select: "fullName userName avatar",
-        },
-      })
-      .skip(skip)
-      .limit(parseInt(limit))
-      .sort({ createdAt: -1 });
-
-    const rooms = memberships.map((membership) => {
-      const room = membership.room;
-      return {
-        _id: room._id,
-        name: room.name,
-        description: room.description,
-        coverImage: room.coverImage,
-        roomType: room.roomType,
-        creator: {
-          _id: room.creator._id,
-          fullName: room.creator.fullName,
-          userName: room.creator.userName,
-          avatar: room.creator.avatar,
-        },
-        membersCount: room.membersCount,
-        postsCount: room.postsCount,
-        joinCode: room.joinCode,
-        isCR: membership.isCR,
-        isArchived: room.isArchived,
-        createdAt: room.createdAt,
-      };
-    });
-
-    // Get total count
-    const totalDocs = await RoomMembership.countDocuments({
-      user: userId,
+      isPending: false,
       room: { $in: validRooms },
     });
 
@@ -674,7 +445,6 @@ const roomServices = {
       isCreator,
       isRoomAdmin: membership?.isAdmin || false,
       isCR: membership?.isCR || false,
-      isHidden: membership?.isHidden || false,
       joinCode: membership ? room.joinCode : null, // Only show to members
       // Button visibility logic:
       // - Owner: Can create rooms (show create button on room list)
@@ -697,8 +467,6 @@ const roomPostsAndMembers = {
     const room = await Room.findById(roomId);
     if (!room) throw new ApiError(404, "Room not found");
     if (room.isDeleted) throw new ApiError(404, "Room not found");
-    if (room.isArchived)
-      throw new ApiError(403, "Cannot post in archived room");
 
     // Check membership
     const membership = await RoomMembership.findOne({
@@ -891,18 +659,28 @@ const roomPostsAndMembers = {
     if (!room) throw new ApiError(404, "Room not found");
     if (room.isDeleted) throw new ApiError(404, "Room not found");
 
-    // Check if user is creator or admin
-    const isCreator = room.creator.toString() === userId.toString();
-    const userMembership = await RoomMembership.findOne({
-      room: roomId,
-      user: userId,
-      status: MEMBERSHIP_STATUS.ACCEPTED,
-    });
+    // Get current user info
+    const currentUser = await User.findById(userId);
+    if (!currentUser) throw new ApiError(404, "User not found");
 
-    if (!isCreator && !userMembership?.isAdmin) {
+    // Check if user has permission: OWNER, ADMIN, or TEACHER (who is member)
+    const isOwner = currentUser.userType === USER_TYPES.OWNER;
+    const isAdmin = currentUser.userType === USER_TYPES.ADMIN;
+
+    let isTeacher = false;
+    if (currentUser.userType === USER_TYPES.TEACHER) {
+      const userMembership = await RoomMembership.findOne({
+        room: roomId,
+        user: userId,
+        isPending: false,
+      });
+      isTeacher = !!userMembership;
+    }
+
+    if (!isOwner && !isAdmin && !isTeacher) {
       throw new ApiError(
         403,
-        "Only room creator or admin can view join requests"
+        "Only teachers (who are members), admins, or owners can view join requests"
       );
     }
 
@@ -910,7 +688,7 @@ const roomPostsAndMembers = {
 
     const requests = await RoomMembership.find({
       room: roomId,
-      status: MEMBERSHIP_STATUS.PENDING,
+      isPending: true,
     })
       .populate("user", "fullName userName avatar")
       .sort({ createdAt: -1 })
@@ -930,7 +708,7 @@ const roomPostsAndMembers = {
 
     const total = await RoomMembership.countDocuments({
       room: roomId,
-      status: MEMBERSHIP_STATUS.PENDING,
+      isPending: true,
     });
 
     const pagination = {

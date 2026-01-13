@@ -34,20 +34,12 @@ const roomMembershipSchema = new Schema(
       type: Boolean,
       default: false,
     },
-
-    // Personal Preference: Hide Room
-    isHidden: {
-      type: Boolean,
-      default: false,
-      index: true,
-    },
   },
   { timestamps: true }
 );
 
 // Unique Constraint
 roomMembershipSchema.index({ room: 1, user: 1 }, { unique: true });
-roomMembershipSchema.index({ user: 1, isHidden: 1 });
 roomMembershipSchema.index({ room: 1, isPending: 1 });
 
 export const RoomMembership = mongoose.model(
