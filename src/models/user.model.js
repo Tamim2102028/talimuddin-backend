@@ -48,23 +48,7 @@ const userSchema = new Schema(
     gender: { type: String, enum: Object.values(GENDERS) },
     religion: { type: String, enum: Object.values(RELIGIONS) },
 
-    socialLinks: {
-      linkedin: { type: String },
-      github: { type: String },
-      website: { type: String },
-      facebook: { type: String },
-    },
-    skills: [{ type: String, trim: true }],
-    interests: [{ type: String, trim: true }],
-
-    // --- Social Stats ---
-    // Note: connectionsCount, followersCount, followingCount kept for data integrity
-    // but features are removed. Can be cleaned up in future migration.
-    connectionsCount: { type: Number, default: 0 },
-    followersCount: { type: Number, default: 0 },
-    followingCount: { type: Number, default: 0 },
     postsCount: { type: Number, default: 0 },
-    publicFilesCount: { type: Number, default: 0 },
 
     // --- User Type ---
     userType: {
@@ -103,19 +87,12 @@ const userSchema = new Schema(
     // --- Activity Restrictions ---
     restrictions: {
       isCommentBlocked: { type: Boolean, default: false },
-      isPostBlocked: { type: Boolean, default: false },
-      isMessageBlocked: { type: Boolean, default: false },
       commentRestriction: {
         reason: { type: String, trim: true },
         restrictedAt: { type: Date },
         restrictedBy: { type: Schema.Types.ObjectId, ref: "User" },
       },
       postRestriction: {
-        reason: { type: String, trim: true },
-        restrictedAt: { type: Date },
-        restrictedBy: { type: Schema.Types.ObjectId, ref: "User" },
-      },
-      messageRestriction: {
         reason: { type: String, trim: true },
         restrictedAt: { type: Date },
         restrictedBy: { type: Schema.Types.ObjectId, ref: "User" },
