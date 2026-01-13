@@ -33,25 +33,25 @@ const generateAccessAndRefreshTokens = async (userId) => {
 // 🚀 1. REGISTER USER SERVICE
 // ==========================================
 export const registerUserService = async (userData) => {
-  const { fullName, email, password, userName, userType, agreeToTerms } =
-    userData;
+  const { fullName, email, password, userName, agreeToTerms } = userData;
 
   const existedUser = await User.findOne({ $or: [{ email }, { userName }] });
   if (existedUser) {
     throw new ApiError(409, "User with this email or username already exists");
   }
 
-  if ([USER_TYPES.ADMIN, USER_TYPES.OWNER].includes(userType)) {
-    throw new ApiError(403, "Restricted user type.");
-  }
+  // Default Islamic boy avatar
+  const defaultAvatar =
+    "https://res.cloudinary.com/dtkeyccga/image/upload/v1736777200/islamic-boy-avatar_default.png";
 
-  // Create User Payload
+  // Create User Payload with default values
   const userPayload = {
     fullName,
     email,
     password,
     userName,
-    userType,
+    userType: USER_TYPES.NORMAL, // Always set to "normal" by default
+    avatar: defaultAvatar, // Default Islamic boy avatar
     agreedToTerms: agreeToTerms,
     termsAgreedAt: new Date(),
   };

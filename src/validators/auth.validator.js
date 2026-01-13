@@ -1,5 +1,4 @@
 import Joi from "joi";
-import { USER_TYPES } from "../constants/index.js";
 
 // ১. রেজিস্ট্রেশন স্কিমা
 const userRegisterSchema = Joi.object({
@@ -35,15 +34,6 @@ const userRegisterSchema = Joi.object({
       "string.empty": "Username is required.",
     }),
 
-  // 🔥 CRITICAL SECURITY FIX 🔥
-  // এখানে আমরা whitelist করে দিচ্ছি। এর বাইরে কিছু পাঠালেই Error খাবে।
-  userType: Joi.string()
-    .valid(USER_TYPES.STUDENT, USER_TYPES.TEACHER) // ONLY THESE TWO ALLOWED
-    .required()
-    .messages({
-      "any.only":
-        "Security Alert: You can only register as STUDENT or TEACHER.",
-    }),
   // ✅ Real World Safety: Backend এও Terms Agreement চেক করা
   agreeToTerms: Joi.boolean().valid(true).required().messages({
     "any.only": "You must agree to the terms and conditions.",
