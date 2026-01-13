@@ -80,6 +80,7 @@ const roomActions = {
   },
 
   // 🚀 JOIN ROOM (via join code only) - Creates PENDING request
+  // User can only be in ONE room at a time
   joinRoomService: async (userId, joinCode) => {
     // Find room by join code
     const room = await Room.findOne({ joinCode });
@@ -92,18 +93,17 @@ const roomActions = {
       throw new ApiError(404, "Room not found");
     }
 
-    // Check if already has a membership
-    const existing = await RoomMembership.findOne({
-      room: room._id,
+    // Check if user is already in ANY room (accepted or pending)
+    const existingMembership = await RoomMembership.findOne({
       user: userId,
     });
 
-    if (existing) {
-      if (existing.isPending) {
-        throw new ApiError(400, "Join request already pending");
-      } else {
-        throw new ApiError(400, "Already a member of this room");
-      }
+    if (existingMembership) {
+      const existingRoom = await Room.findById(existingMembership.room);
+      throw new ApiError(
+        400,
+        `You are already ${existingMembership.isPending ? "requesting to join" : "a member of"} "${existingRoom?.name}". Please leave that room first.`
+      );
     }
 
     // Create PENDING membership request
@@ -119,6 +119,36 @@ const roomActions = {
       roomId: room._id,
       roomName: room.name,
       message: "Join request sent successfully. Waiting for approval.",
+    };
+  },
+
+  // 🚀 LEAVE ROOM - Deletes membership document
+  leaveRoomService: async (roomId, userId) => {
+    const room = await Room.findById(roomId);
+    if (!room) throw new ApiError(404, "Room not found");
+    if (room.isDeleted) throw new ApiError(404, "Room not found");
+
+    // Find membership
+    const membership = await RoomMembership.findOne({
+      room: roomId,
+      user: userId,
+    });
+
+    if (!membership) {
+      throw new ApiError(400, "You are not a member of this room");
+    }
+
+    // Delete membership document
+    await RoomMembership.findByIdAndDelete(membership._id);
+
+    // Decrement members count only if was accepted member
+    if (!membership.isPending) {
+      await Room.findByIdAndUpdate(roomId, { $inc: { membersCount: -1 } });
+    }
+
+    return {
+      roomId: room._id,
+      message: "Successfully left the room",
     };
   },
 
@@ -344,7 +374,52 @@ const roomActions = {
 // ROOM SERVICES
 // ==========================================
 const roomServices = {
-  // 🚀 GET MY ROOMS
+  // 🚀 GET ALL ROOMS (Public - anyone can see)
+  getAllRoomsService: async (page = 1, limit = 10) => {
+    const skip = (page - 1) * limit;
+
+    const rooms = await Room.find({
+      isDeleted: false,
+    })
+      .populate("creator", "fullName userName avatar")
+      .skip(skip)
+      .limit(parseInt(limit))
+      .sort({ createdAt: -1 });
+
+    const formattedRooms = rooms.map((room) => ({
+      _id: room._id,
+      name: room.name,
+      description: room.description,
+      coverImage: room.coverImage,
+      roomType: room.roomType,
+      creator: {
+        _id: room.creator._id,
+        fullName: room.creator.fullName,
+        userName: room.creator.userName,
+        avatar: room.creator.avatar,
+      },
+      membersCount: room.membersCount,
+      postsCount: room.postsCount,
+      createdAt: room.createdAt,
+    }));
+
+    const totalDocs = await Room.countDocuments({
+      isDeleted: false,
+    });
+
+    const pagination = {
+      totalDocs,
+      limit: parseInt(limit),
+      page: parseInt(page),
+      totalPages: Math.ceil(totalDocs / limit),
+      hasNextPage: parseInt(page) < Math.ceil(totalDocs / limit),
+      hasPrevPage: parseInt(page) > 1,
+    };
+
+    return { rooms: formattedRooms, pagination };
+  },
+
+  // 🚀 GET MY ROOMS (User's joined rooms only)
   getMyRoomsService: async (userId, page = 1, limit = 10) => {
     const skip = (page - 1) * limit;
 
