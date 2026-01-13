@@ -13,12 +13,12 @@ const userSchema = new Schema(
   {
     // --- Identity ---
     fullName: { type: String, required: true, trim: true, index: true },
-    email: {
+    phoneNumber: {
       type: String,
       required: true,
       unique: true,
-      lowercase: true,
       trim: true,
+      index: true,
     },
     password: { type: String, required: [true, "Password is required"] },
     passwordChangedAt: { type: Date },
@@ -30,9 +30,11 @@ const userSchema = new Schema(
       trim: true,
       index: true,
     },
-    phoneNumber: {
+    email: {
       type: String,
+      lowercase: true,
       trim: true,
+      sparse: true, // Allow multiple null values but unique if provided
     },
 
     // --- Profile ---
@@ -174,7 +176,7 @@ userSchema.methods.generateAccessToken = function () {
   return jwt.sign(
     {
       _id: this._id,
-      email: this.email,
+      phoneNumber: this.phoneNumber,
       userName: this.userName,
       userType: this.userType,
     },

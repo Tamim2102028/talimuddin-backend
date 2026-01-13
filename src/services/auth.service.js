@@ -33,11 +33,16 @@ const generateAccessAndRefreshTokens = async (userId) => {
 // 🚀 1. REGISTER USER SERVICE
 // ==========================================
 export const registerUserService = async (userData) => {
-  const { fullName, email, password, userName, agreeToTerms } = userData;
+  const { fullName, phoneNumber, password, userName, agreeToTerms } = userData;
 
-  const existedUser = await User.findOne({ $or: [{ email }, { userName }] });
+  const existedUser = await User.findOne({
+    $or: [{ phoneNumber }, { userName }],
+  });
   if (existedUser) {
-    throw new ApiError(409, "User with this email or username already exists");
+    throw new ApiError(
+      409,
+      "User with this phone number or username already exists"
+    );
   }
 
   // Default Islamic boy avatar
@@ -47,7 +52,7 @@ export const registerUserService = async (userData) => {
   // Create User Payload with default values
   const userPayload = {
     fullName,
-    email,
+    phoneNumber,
     password,
     userName,
     userType: USER_TYPES.NORMAL, // Always set to "normal" by default
@@ -76,13 +81,13 @@ export const registerUserService = async (userData) => {
 // ==========================================
 // 🚀 2. LOGIN USER SERVICE
 // ==========================================
-export const loginUserService = async ({ email, userName, password }) => {
-  if (!email && !userName) {
-    throw new ApiError(400, "Username or email is required");
+export const loginUserService = async ({ phoneNumber, userName, password }) => {
+  if (!phoneNumber && !userName) {
+    throw new ApiError(400, "Username or phone number is required");
   }
 
   const user = await User.findOne({
-    $or: [{ email }, { userName }],
+    $or: [{ phoneNumber }, { userName }],
   });
 
   if (!user) {

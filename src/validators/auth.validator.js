@@ -7,9 +7,17 @@ const userRegisterSchema = Joi.object({
     "string.min": "Full name must be at least 3 characters",
   }),
 
-  email: Joi.string().email().trim().lowercase().required(),
+  phoneNumber: Joi.string()
+    .trim()
+    .pattern(/^01[3-9]\d{8}$/)
+    .required()
+    .messages({
+      "string.empty": "Phone number is required",
+      "string.pattern.base":
+        "Phone number must be a valid Bangladeshi number (e.g., 01712345678)",
+    }),
 
-  // পাসওয়ার্ড পলিসি (স্ট্রং)
+  // পাসওয়ার্ড পলিসি (স্ট্রং)
   password: Joi.string()
     .pattern(new RegExp("^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])"))
     .min(8)
