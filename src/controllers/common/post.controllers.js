@@ -42,16 +42,8 @@ const createPost = asyncHandler(async (req, res) => {
         throw new ApiError(403, "You can only post on your own profile");
       }
 
-      // 2. Create Post
+      // 2. Create Post (service handles postsCount increment)
       result = await createPostService(req.body, userId);
-
-      // 3. Post-Creation Side Effects
-      const userUpdate = await User.findByIdAndUpdate(postOnId, {
-        $inc: { postsCount: 1 },
-      });
-      if (!userUpdate) {
-        throw new ApiError(500, "Failed to update user profile posts count");
-      }
       break;
     }
 
@@ -82,58 +74,32 @@ const createPost = asyncHandler(async (req, res) => {
         );
       }
 
-      // 2. Create Post
+      // 2. Create Post (service handles postsCount increment)
       result = await createPostService(req.body, userId);
-
-      // 3. Post-Creation Side Effects
-      const groupUpdate = await Group.findByIdAndUpdate(postOnId, {
-        $inc: { postsCount: 1 },
-      });
-      if (!groupUpdate) {
-        throw new ApiError(500, "Failed to update group posts count");
-      }
       break;
     }
 
     case POST_TARGET_MODELS.DEPARTMENT: {
       // 1. TODO: Department specific validation (if any)
 
-      // 2. Create Post
+      // 2. Create Post (service handles postsCount increment)
       result = await createPostService(req.body, userId);
-
-      // 3. Post-Creation Side Effects
-      const deptUpdate = await Department.findByIdAndUpdate(postOnId, {
-        $inc: { postsCount: 1 },
-      });
-      if (!deptUpdate) {
-        throw new ApiError(500, "Failed to update department posts count");
-      }
       break;
     }
 
     case POST_TARGET_MODELS.INSTITUTION: {
       // 1. TODO: Institution specific validation (if any)
 
-      // 2. Create Post
+      // 2. Create Post (service handles postsCount increment)
       result = await createPostService(req.body, userId);
-
-      // 3. Post-Creation Side Effects
-      const instUpdate = await Institution.findByIdAndUpdate(postOnId, {
-        $inc: { postsCount: 1 },
-      });
-      if (!instUpdate) {
-        throw new ApiError(500, "Failed to update institution posts count");
-      }
       break;
     }
 
     case POST_TARGET_MODELS.ROOM: {
       // 1. TODO: Room specific validation
 
-      // 2. Create Post
+      // 2. Create Post (service handles postsCount increment)
       result = await createPostService(req.body, userId);
-
-      // 3. Post-Creation Side Effects (if any)
       break;
     }
 

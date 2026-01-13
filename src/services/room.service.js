@@ -589,11 +589,8 @@ const roomPostsAndMembers = {
       postOnId: roomId,
     };
 
-    // Create post using common service
+    // Create post using common service (handles postsCount increment)
     const formattedPost = await createPostService(newPostData, userId);
-
-    // Update room stats
-    await Room.findByIdAndUpdate(roomId, { $inc: { postsCount: 1 } });
 
     return formattedPost;
   },
