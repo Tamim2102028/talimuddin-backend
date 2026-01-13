@@ -7,16 +7,17 @@ import { ApiError } from "../utils/ApiError.js";
 // ROOM ACTIONS
 // ==========================================
 const roomActions = {
-  // 🚀 CREATE ROOM (Teachers only)
+  // 🚀 CREATE ROOM (Owner only)
   createRoomService: async (roomData, userId) => {
     const user = await User.findById(userId);
     if (!user) {
       throw new ApiError(404, "User not found");
     }
 
-    // Only teachers can create rooms
-    if (user.userType !== "TEACHER") {
-      throw new ApiError(403, "Only teachers can create rooms");
+    // Only owner can create rooms
+    const { USER_TYPES } = await import("../constants/index.js");
+    if (user.userType !== USER_TYPES.OWNER) {
+      throw new ApiError(403, "Only owner can create rooms");
     }
 
     // Generate unique 6-character alphanumeric join code
@@ -532,15 +533,27 @@ const roomServices = {
     });
 
     const user = await User.findById(userId);
+    const { USER_TYPES } = await import("../constants/index.js");
+
+    const isCreator = room.creator._id.toString() === userId.toString();
+    const isOwner = user?.userType === USER_TYPES.OWNER;
+    const isAdmin = user?.userType === USER_TYPES.ADMIN;
 
     const meta = {
       isMember: !!membership,
-      isTeacher: user?.userType === "TEACHER",
-      isCreator: room.creator._id.toString() === userId.toString(),
-      isAdmin: membership?.isAdmin || false,
+      isOwner,
+      isAdmin,
+      isCreator,
+      isRoomAdmin: membership?.isAdmin || false,
       isCR: membership?.isCR || false,
       isHidden: membership?.isHidden || false,
       joinCode: membership ? room.joinCode : null, // Only show to members
+      // Button visibility logic:
+      // - Owner: Can create rooms (show create button on room list)
+      // - Admin: Already member of all rooms (no join button needed)
+      // - Normal/Teacher: Show join button if not member
+      canJoin: !isOwner && !isAdmin && !membership,
+      canCreate: isOwner,
     };
 
     return { room, meta };
