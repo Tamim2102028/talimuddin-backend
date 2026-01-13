@@ -33,11 +33,13 @@ const generateAccessAndRefreshTokens = async (userId) => {
 // 🚀 1. REGISTER USER SERVICE
 // ==========================================
 export const registerUserService = async (userData) => {
-  const { fullName, phoneNumber, password, userName, agreeToTerms } = userData;
+  const { fullName, phoneNumber, password, userName, gender, agreeToTerms } =
+    userData;
 
   const existedUser = await User.findOne({
     $or: [{ phoneNumber }, { userName }],
   });
+
   if (existedUser) {
     throw new ApiError(
       409,
@@ -45,18 +47,24 @@ export const registerUserService = async (userData) => {
     );
   }
 
-  // Default Islamic boy avatar
+  // Gender-based default avatar
   const defaultAvatar =
-    "https://res.cloudinary.com/dtkeyccga/image/upload/v1736777200/islamic-boy-avatar_default.png";
+    gender === "female"
+      ? "https://res.cloudinary.com/dr7xx5ch4/image/upload/v1768286667/girl_rok2ob.png"
+      : "https://res.cloudinary.com/dr7xx5ch4/image/upload/v1768285953/u6eqtyialvxv1oaaymti.png";
 
-  // Create User Payload with default values
+  const defultCoverImage =
+    "https://res.cloudinary.com/dr7xx5ch4/image/upload/v1768286305/e7hunutkggs4ewvvfuzk.png";
+
   const userPayload = {
     fullName,
     phoneNumber,
     password,
     userName,
+    gender,
     userType: USER_TYPES.NORMAL, // Always set to "normal" by default
-    avatar: defaultAvatar, // Default Islamic boy avatar
+    avatar: defaultAvatar,
+    coverImage: defultCoverImage,
     agreedToTerms: agreeToTerms,
     termsAgreedAt: new Date(),
   };

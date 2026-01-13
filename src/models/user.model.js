@@ -40,11 +40,9 @@ const userSchema = new Schema(
     // --- Profile ---
     avatar: {
       type: String,
-      default: "https://api.dicebear.com/6.x/bottts/svg?seed=tamim",
     },
     coverImage: {
       type: String,
-      default: "https://api.dicebear.com/6.x/bottts/svg?seed=coverimage",
     },
     bio: { type: String, trim: true, maxLength: 300 },
 

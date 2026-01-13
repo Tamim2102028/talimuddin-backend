@@ -42,6 +42,11 @@ const userRegisterSchema = Joi.object({
       "string.empty": "Username is required.",
     }),
 
+  gender: Joi.string().valid("male", "female").required().messages({
+    "string.empty": "Gender is required",
+    "any.only": "Gender must be either male or female",
+  }),
+
   // ✅ Real World Safety: Backend এও Terms Agreement চেক করা
   agreeToTerms: Joi.boolean().valid(true).required().messages({
     "any.only": "You must agree to the terms and conditions.",
