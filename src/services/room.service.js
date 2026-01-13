@@ -1,7 +1,12 @@
 import { Room } from "../models/room.model.js";
 import { RoomMembership } from "../models/roomMembership.model.js";
 import { User } from "../models/user.model.js";
+import { Post } from "../models/post.model.js";
+import { ReadPost } from "../models/readPost.model.js";
 import { ApiError } from "../utils/ApiError.js";
+import { USER_TYPES, POST_TARGET_MODELS } from "../constants/index.js";
+import { uploadFile, deleteFile } from "../utils/cloudinaryFileUpload.js";
+import { createPostService } from "./common/post.service.js";
 
 // ==========================================
 // ROOM ACTIONS
@@ -15,7 +20,6 @@ const roomActions = {
     }
 
     // Only owner can create rooms
-    const { USER_TYPES } = await import("../constants/index.js");
     if (user.userType !== USER_TYPES.OWNER) {
       throw new ApiError(403, "Only owner can create rooms");
     }
@@ -118,6 +122,9 @@ const roomActions = {
       isAdmin: false,
       isHidden: false,
     });
+
+    // Increment members count
+    await Room.findByIdAndUpdate(room._id, { $inc: { membersCount: 1 } });
 
     return {
       roomId: room._id,
@@ -281,10 +288,6 @@ const roomActions = {
     if (!isCreator && !membership?.isAdmin) {
       throw new ApiError(403, "Permission denied");
     }
-
-    const { uploadFile, deleteFile } = await import(
-      "../utils/cloudinaryFileUpload.js"
-    );
 
     const cover = await uploadFile(localFilePath);
     if (!cover?.url) throw new ApiError(500, "Failed to upload cover image");
@@ -533,7 +536,6 @@ const roomServices = {
     });
 
     const user = await User.findById(userId);
-    const { USER_TYPES } = await import("../constants/index.js");
 
     const isCreator = room.creator._id.toString() === userId.toString();
     const isOwner = user?.userType === USER_TYPES.OWNER;
@@ -581,7 +583,6 @@ const roomPostsAndMembers = {
       throw new ApiError(403, "You must be a member to post in this room");
     }
 
-    const { User } = await import("../models/user.model.js");
     const user = await User.findById(userId);
 
     // Check if student posting is allowed
@@ -591,9 +592,6 @@ const roomPostsAndMembers = {
     ) {
       throw new ApiError(403, "Student posting is disabled in this room");
     }
-
-    const { POST_TARGET_MODELS } = await import("../constants/index.js");
-    const { createPostService } = await import("./common/post.service.js");
 
     // Prepare post data
     const newPostData = {
@@ -623,13 +621,6 @@ const roomPostsAndMembers = {
       throw new ApiError(403, "You are not a member of this room");
     }
 
-    const { Post } = await import("../models/post.model.js");
-    const { Reaction } = await import("../models/reaction.model.js");
-    const { ReadPost } = await import("../models/readPost.model.js");
-    const { REACTION_TARGET_MODELS, POST_TARGET_MODELS } = await import(
-      "../constants/index.js"
-    );
-
     const skip = (page - 1) * limit;
 
     const posts = await Post.find({
@@ -645,16 +636,11 @@ const roomPostsAndMembers = {
 
     const postIds = posts.map((p) => p._id);
 
-    const [likes, readStatuses] = await Promise.all([
-      Reaction.find({
-        targetModel: REACTION_TARGET_MODELS.POST,
-        targetId: { $in: postIds },
-        user: userId,
-      }),
-      ReadPost.find({ post: { $in: postIds }, user: userId }),
-    ]);
+    const readStatuses = await ReadPost.find({
+      post: { $in: postIds },
+      user: userId,
+    });
 
-    const likeMap = new Map(likes.map((l) => [l.targetId.toString(), true]));
     const readMap = new Map(readStatuses.map((r) => [r.post.toString(), true]));
 
     const isCreator = room.creator.toString() === userId.toString();
@@ -663,7 +649,6 @@ const roomPostsAndMembers = {
     const postsWithMeta = posts.map((post) => ({
       post: post,
       meta: {
-        isLiked: likeMap.has(post._id.toString()),
         isSaved: false, // Bookmark feature not implemented yet
         isRead: readMap.has(post._id.toString()),
         isMine: post.author._id.toString() === userId.toString(),

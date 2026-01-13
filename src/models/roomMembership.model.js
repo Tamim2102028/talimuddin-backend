@@ -42,17 +42,6 @@ const roomMembershipSchema = new Schema(
 roomMembershipSchema.index({ room: 1, user: 1 }, { unique: true });
 roomMembershipSchema.index({ user: 1, isHidden: 1 });
 
-// --- Hooks (Member Count) ---
-roomMembershipSchema.post("save", async function (doc) {
-  await Room.findByIdAndUpdate(doc.room, { $inc: { membersCount: 1 } });
-});
-
-roomMembershipSchema.post("findOneAndDelete", async function (doc) {
-  if (doc) {
-    await Room.findByIdAndUpdate(doc.room, { $inc: { membersCount: -1 } });
-  }
-});
-
 export const RoomMembership = mongoose.model(
   "RoomMembership",
   roomMembershipSchema
