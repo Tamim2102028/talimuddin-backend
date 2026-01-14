@@ -1,11 +1,11 @@
 import mongoose, { Schema } from "mongoose";
-import { Room } from "./room.model.js";
+import { Branch } from "./branch.model.js";
 
-const roomMembershipSchema = new Schema(
+const branchMembershipSchema = new Schema(
   {
-    room: {
+    branch: {
       type: Schema.Types.ObjectId,
-      ref: "Room",
+      ref: "Branch",
       required: true,
       index: true,
     },
@@ -29,7 +29,7 @@ const roomMembershipSchema = new Schema(
       default: false,
     },
 
-    // Admin: Can manage room (archive, edit settings)
+    // Admin: Can manage branch (archive, edit settings)
     isAdmin: {
       type: Boolean,
       default: false,
@@ -39,10 +39,10 @@ const roomMembershipSchema = new Schema(
 );
 
 // Unique Constraint
-roomMembershipSchema.index({ room: 1, user: 1 }, { unique: true });
-roomMembershipSchema.index({ room: 1, isPending: 1 });
+branchMembershipSchema.index({ branch: 1, user: 1 }, { unique: true });
+branchMembershipSchema.index({ branch: 1, isPending: 1 });
 
-export const RoomMembership = mongoose.model(
-  "RoomMembership",
-  roomMembershipSchema
+export const BranchMembership = mongoose.model(
+  "BranchMembership",
+  branchMembershipSchema
 );

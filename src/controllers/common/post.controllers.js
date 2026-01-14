@@ -10,7 +10,7 @@ import {
   togglePinPostService,
 } from "../../services/common/post.service.js";
 import { User } from "../../models/user.model.js";
-import { Room } from "../../models/room.model.js";
+import { Branch } from "../../models/branch.model.js";
 import { POST_TARGET_MODELS } from "../../constants/index.js";
 
 const createPost = asyncHandler(async (req, res) => {
@@ -95,8 +95,8 @@ const createPost = asyncHandler(async (req, res) => {
       break;
     }
 
-    case POST_TARGET_MODELS.ROOM: {
-      // 1. TODO: Room specific validation
+    case POST_TARGET_MODELS.BRANCH: {
+      // 1. TODO: Branch specific validation
 
       // 2. Create Post (service handles postsCount increment)
       result = await createPostService(req.body, userId);

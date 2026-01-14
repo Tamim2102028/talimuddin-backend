@@ -5,20 +5,22 @@ import {
   roomActions,
   roomServices,
   roomPostsAndMembers,
-} from "../services/room.service.js";
+} from "../services/Branch.service.js";
 
 // ==========================================
-// 🚀 1. CREATE ROOM
+// 🚀 1. CREATE Branch
 // ==========================================
 const createRoom = asyncHandler(async (req, res) => {
-  const { room, meta } = await roomActions.createRoomService(
+  const { Branch, meta } = await roomActions.createRoomService(
     req.body,
     req.user._id
   );
 
   return res
     .status(201)
-    .json(new ApiResponse(201, { room, meta }, "Room created successfully"));
+    .json(
+      new ApiResponse(201, { Branch, meta }, "Branch created successfully")
+    );
 });
 
 // ==========================================
@@ -65,11 +67,11 @@ const getMyRooms = asyncHandler(async (req, res) => {
 });
 
 // ==========================================
-// 🚀 4. GET ROOM DETAILS
+// 🚀 4. GET Branch DETAILS
 // ==========================================
 const getRoomDetails = asyncHandler(async (req, res) => {
   const { roomId } = req.params;
-  const { room, meta } = await roomServices.getRoomDetailsService(
+  const { Branch, meta } = await roomServices.getRoomDetailsService(
     roomId,
     req.user._id
   );
@@ -77,12 +79,16 @@ const getRoomDetails = asyncHandler(async (req, res) => {
   return res
     .status(200)
     .json(
-      new ApiResponse(200, { room, meta }, "Room details fetched successfully")
+      new ApiResponse(
+        200,
+        { Branch, meta },
+        "Branch details fetched successfully"
+      )
     );
 });
 
 // ==========================================
-// 🚀 5. JOIN ROOM (by join code)
+// 🚀 5. JOIN Branch (by join code)
 // ==========================================
 const joinRoom = asyncHandler(async (req, res) => {
   const { joinCode } = req.body;
@@ -97,7 +103,7 @@ const joinRoom = asyncHandler(async (req, res) => {
 });
 
 // ==========================================
-// 🚀 6. LEAVE ROOM
+// 🚀 6. LEAVE Branch
 // ==========================================
 const leaveRoom = asyncHandler(async (req, res) => {
   const { roomId } = req.params;
@@ -108,7 +114,7 @@ const leaveRoom = asyncHandler(async (req, res) => {
 });
 
 // ==========================================
-// 🚀 7. DELETE ROOM (Owner only)
+// 🚀 7. DELETE Branch (Owner only)
 // ==========================================
 const deleteRoom = asyncHandler(async (req, res) => {
   const { roomId } = req.params;
@@ -120,16 +126,16 @@ const deleteRoom = asyncHandler(async (req, res) => {
 
   return res
     .status(200)
-    .json(new ApiResponse(200, { roomId: id }, "Room deleted successfully"));
+    .json(new ApiResponse(200, { roomId: id }, "Branch deleted successfully"));
 });
 
 // ==========================================
-// 🚀 8. UPDATE ROOM
+// 🚀 8. UPDATE Branch
 // ==========================================
 const updateRoom = asyncHandler(async (req, res) => {
   const { roomId } = req.params;
 
-  const { room } = await roomActions.updateRoomService(
+  const { Branch } = await roomActions.updateRoomService(
     roomId,
     req.user._id,
     req.body
@@ -137,11 +143,11 @@ const updateRoom = asyncHandler(async (req, res) => {
 
   return res
     .status(200)
-    .json(new ApiResponse(200, { room }, "Room updated successfully"));
+    .json(new ApiResponse(200, { Branch }, "Branch updated successfully"));
 });
 
 // ==========================================
-// 🚀 9. UPDATE ROOM COVER IMAGE
+// 🚀 9. UPDATE Branch COVER IMAGE
 // ==========================================
 const updateRoomCoverImage = asyncHandler(async (req, res) => {
   const { roomId } = req.params;
@@ -151,7 +157,7 @@ const updateRoomCoverImage = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Cover image file is required");
   }
 
-  const { room } = await roomActions.updateRoomCoverImageService(
+  const { Branch } = await roomActions.updateRoomCoverImageService(
     roomId,
     req.user._id,
     coverImageLocalPath
@@ -160,12 +166,16 @@ const updateRoomCoverImage = asyncHandler(async (req, res) => {
   return res
     .status(200)
     .json(
-      new ApiResponse(200, { room }, "Room cover image updated successfully")
+      new ApiResponse(
+        200,
+        { Branch },
+        "Branch cover image updated successfully"
+      )
     );
 });
 
 // ==========================================
-// 🚀 10. GET ROOM POSTS
+// 🚀 10. GET Branch POSTS
 // ==========================================
 const getRoomPosts = asyncHandler(async (req, res) => {
   const { roomId } = req.params;
@@ -184,13 +194,13 @@ const getRoomPosts = asyncHandler(async (req, res) => {
       new ApiResponse(
         200,
         { posts, pagination },
-        "Room posts fetched successfully"
+        "Branch posts fetched successfully"
       )
     );
 });
 
 // ==========================================
-// 🚀 11. GET ROOM MEMBERS
+// 🚀 11. GET Branch MEMBERS
 // ==========================================
 const getRoomMembers = asyncHandler(async (req, res) => {
   const { roomId } = req.params;
@@ -210,7 +220,7 @@ const getRoomMembers = asyncHandler(async (req, res) => {
       new ApiResponse(
         200,
         { members, pagination, meta },
-        "Room members fetched successfully"
+        "Branch members fetched successfully"
       )
     );
 });

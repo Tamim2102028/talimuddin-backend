@@ -15,20 +15,20 @@ import {
   getPendingJoinRequests,
   acceptJoinRequest,
   rejectJoinRequest,
-} from "../controllers/room.controllers.js";
+} from "../controllers/Branch.controllers.js";
 import { uploadImage } from "../middlewares/multer.middleware.js";
 
 const router = Router();
 router.use(verifyJWT);
 
-// Room Routes
+// Branch Routes
 router.post("/", createRoom);
 router.get("/all", getAllRooms); // All rooms (public)
 router.get("/my", getMyRooms); // My joined rooms
 router.post("/join", joinRoom);
 router.post("/:roomId/leave", leaveRoom);
 
-// Room Details & Content
+// Branch Details & Content
 router.get("/:roomId", getRoomDetails);
 router.get("/:roomId/posts", getRoomPosts);
 router.get("/:roomId/members", getRoomMembers);
