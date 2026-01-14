@@ -1,5 +1,5 @@
-import { Branch } from "../models/Branch.model.js";
-import { BranchMembership } from "../models/BranchMembership.model.js";
+import { Branch } from "../models/branch.model.js";
+import { BranchMembership } from "../models/branchMembership.model.js";
 import { User } from "../models/user.model.js";
 import { Post } from "../models/post.model.js";
 import { ReadPost } from "../models/readPost.model.js";

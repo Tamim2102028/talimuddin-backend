@@ -1,5 +1,4 @@
 import mongoose, { Schema } from "mongoose";
-import { Branch } from "./branch.model.js";
 
 const branchMembershipSchema = new Schema(
   {
