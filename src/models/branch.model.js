@@ -1,7 +1,7 @@
 import mongoose, { Schema } from "mongoose";
-import { ROOM_TYPES } from "../constants/index.js";
+import { BRANCH_TYPES } from "../constants/index.js";
 
-const roomSchema = new Schema(
+const branchSchema = new Schema(
   {
     // --- 1. Basic Info ---
     name: {
@@ -15,10 +15,10 @@ const roomSchema = new Schema(
       required: true,
     },
 
-    // --- 2. Room Type ---
-    roomType: {
+    // --- 2. Branch Type ---
+    branchType: {
       type: String,
-      enum: Object.values(ROOM_TYPES),
+      enum: Object.values(BRANCH_TYPES),
       required: true,
     },
 
@@ -57,4 +57,4 @@ const roomSchema = new Schema(
   { timestamps: true }
 );
 
-export const Room = mongoose.model("Room", roomSchema);
+export const Branch = mongoose.model("Branch", branchSchema);

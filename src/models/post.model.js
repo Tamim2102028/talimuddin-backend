@@ -40,7 +40,7 @@ const postSchema = new Schema(
     },
 
     // Model on which the post is made
-    // (User, Group, Page, Room, Institution, Department, CrCorner)
+    // (User, Group, Page, Branch, Institution, Department, CrCorner)
     postOnModel: {
       type: String,
       required: true,

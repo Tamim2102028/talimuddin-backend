@@ -9,7 +9,7 @@ import {
   POST_STATUS,
 } from "../../constants/index.js";
 import { ApiError } from "../../utils/ApiError.js";
-import { Room } from "../../models/room.model.js";
+import { Branch } from "../../models/branch.model.js";
 
 export const createPostService = async (postData, authorId) => {
   const {
@@ -48,14 +48,14 @@ export const createPostService = async (postData, authorId) => {
         `Internal visibility is not allowed for Profile posts`
       );
     }
-  } else if (postOnModel === POST_TARGET_MODELS.ROOM) {
+  } else if (postOnModel === POST_TARGET_MODELS.BRANCH) {
     if (
       visibility !== POST_VISIBILITY.CONNECTIONS &&
       visibility !== POST_VISIBILITY.ONLY_ME
     ) {
       throw new ApiError(
         400,
-        `Only "Room Members" (CONNECTIONS) and "Only me" (ONLY_ME) visibility are allowed for Room posts`
+        `Only "Branch Members" (CONNECTIONS) and "Only me" (ONLY_ME) visibility are allowed for Branch posts`
       );
     }
   } else if (postOnModel === POST_TARGET_MODELS.PAGE) {
@@ -134,8 +134,8 @@ export const createPostService = async (postData, authorId) => {
       await Institution.findByIdAndUpdate(postOnId, {
         $inc: { postsCount: 1 },
       });
-    } else if (postOnModel === POST_TARGET_MODELS.ROOM) {
-      await Room.findByIdAndUpdate(postOnId, { $inc: { postsCount: 1 } });
+    } else if (postOnModel === POST_TARGET_MODELS.BRANCH) {
+      await Branch.findByIdAndUpdate(postOnId, { $inc: { postsCount: 1 } });
     }
   }
 
@@ -337,8 +337,8 @@ export const deletePostService = async (postId, userId) => {
         await Institution.findByIdAndUpdate(post.postOnId, {
           $inc: { postsCount: -1 },
         });
-      } else if (post.postOnModel === POST_TARGET_MODELS.ROOM) {
-        await Room.findByIdAndUpdate(post.postOnId, {
+      } else if (post.postOnModel === POST_TARGET_MODELS.BRANCH) {
+        await Branch.findByIdAndUpdate(post.postOnId, {
           $inc: { postsCount: -1 },
         });
       }
@@ -405,14 +405,14 @@ export const updatePostService = async (postId, userId, updateData) => {
           `Internal visibility is not allowed for Profile posts`
         );
       }
-    } else if (post.postOnModel === POST_TARGET_MODELS.ROOM) {
+    } else if (post.postOnModel === POST_TARGET_MODELS.BRANCH) {
       if (
         visibility !== POST_VISIBILITY.CONNECTIONS &&
         visibility !== POST_VISIBILITY.ONLY_ME
       ) {
         throw new ApiError(
           400,
-          `Only "Room Members" (CONNECTIONS) and "Only me" (ONLY_ME) visibility are allowed for Room posts`
+          `Only "Branch Members" (CONNECTIONS) and "Only me" (ONLY_ME) visibility are allowed for Branch posts`
         );
       }
     } else if (post.postOnModel === POST_TARGET_MODELS.PAGE) {

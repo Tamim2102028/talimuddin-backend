@@ -1,4 +1,4 @@
-export const ROOM_TYPES = {
+export const BRANCH_TYPES = {
   MAIN_BRANCH: "MAIN_BRANCH",
   SUB_BRANCH: "SUB_BRANCH",
 };

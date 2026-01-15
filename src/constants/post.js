@@ -21,7 +21,7 @@ export const ATTACHMENT_TYPES = {
 // 🎯 পোস্ট কোথায় হচ্ছে? (Location)
 export const POST_TARGET_MODELS = {
   GROUP: "Group",
-  ROOM: "Room",
+  BRANCH: "Branch",
   PAGE: "Page",
   USER: "User",
   INSTITUTION: "Institution",
